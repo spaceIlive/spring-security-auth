@@ -1,13 +1,11 @@
 # spring-security-auth
 
 Spring Security의 **필터 체인**과 **인증 객체(`Authentication`) 흐름**을 공부하면서, 기본 폼 로그인 대신 **커스텀 필터 + JWT**로 로그인·이후 요청 인증을 구현한 저장소입니다.
----
-## 사용스택
+
+## 기술 스택
+
 - Java 21, Spring Boot 4, Spring Security, Spring Data JPA, MySQL
 - JWT(JJWT), WAR 패키징 가능
-
-
----
 
 ## 무엇을 공부했고, 어떻게 구현했는지
 
@@ -15,8 +13,6 @@ Spring Security의 **필터 체인**과 **인증 객체(`Authentication`) 흐름
 - **`UsernamePasswordAuthenticationFilter` 계열**: 아이디·비밀번호를 꺼내 `AuthenticationManager`에게 넘기고, 성공/실패 시점을 오버라이드하는 패턴을 `LoginFilter`로 연습했습니다.
 - **`UserDetails` / `UserDetailsService`**: DB의 `UserEntity`를 `CustomUserDetails`로 감싸고, `CustomUserDetailsService`에서 `loadUserByUsername`으로 조회해 스프링 시큐리티가 비밀번호 검증을 하도록 맞췄습니다.
 - **JWT**: 로그인 **한 번** 검증이 끝난 뒤에는, 서버가 세션 ID로 사용자를 찾는 대신 **클라이언트가 들고 다니는 토큰**으로 “누구인지·역할은 무엇인지”를 전달합니다. 발급·파싱은 `JWTUtil`, 이후 요청에서 읽는 일은 `JWTFilter`에 두었습니다.
-
----
 
 ## 필터 방식에서 왜 “세션 로그인”이 아니라 JWT를 썼는지
 
@@ -29,8 +25,6 @@ Spring Security의 **필터 체인**과 **인증 객체(`Authentication`) 흐름
 
 정리하면, **“필터 = 반드시 JWT”는 아니고**, 여기서는 **필터로 로그인 흐름을 직접 제어**하면서 **상태 저장소를 세션이 아니라 토큰(클라이언트 보관)**에 두는 조합을 연습한 것입니다.
 
----
-
 ## 세션 방식이랑 뭐가 다른지
 
 | 구분 | 세션 중심(전통 폼 로그인) | 이 프로젝트(JWT + STATELESS 방향) |
@@ -38,8 +32,6 @@ Spring Security의 **필터 체인**과 **인증 객체(`Authentication`) 흐름
 | 로그인 후 “무엇을 기억하나” | 서버(또는 Redis 등)의 **세션 저장소** | 서버는 **토큰 문자열만 검증**하고, 클라이언트가 토큰을 보관 |
 | 이후 요청이 싣는 정보 | 보통 **세션 쿠키(JSESSIONID 등)** | **`Authorization` 헤더의 Bearer JWT** |
 | 인증이 끝난 뒤 필터가 하는 일 | 세션에서 이미 올라와 있는 `SecurityContext`를 쓰는 흐름이 흔함 | `JWTFilter`가 매 요청마다 토큰을 읽고 **`SecurityContextHolder`에 `Authentication`을 새로 세팅** |
-
----
 
 ## “JWT인데도 세션 얘기가 나오는” 부분 — `SecurityContext`와 HTTP 세션은 다르다
 
@@ -50,7 +42,6 @@ Spring Security의 **필터 체인**과 **인증 객체(`Authentication`) 흐름
 
 즉, **“JWT = SecurityContext를 아예 안 쓴다”가 아니라**, “**서버가 HTTP 세션으로 로그인 상태를 유지하지 않고**, 매 요청마다 토큰으로 `Authentication`을 **다시 구성**한다”에 가깝습니다. 그 점이 **세션 쿠키로 서버가 사용자를 기억하는 방식**과의 차이입니다.
 
-
 ## 커스텀한 부분 위주 정리
 
 | 클래스 | 역할 |
@@ -60,8 +51,6 @@ Spring Security의 **필터 체인**과 **인증 객체(`Authentication`) 흐름
 | `JWTFilter` | `OncePerRequestFilter` — 요청마다 `Authorization` 헤더의 JWT를 검사·만료 확인 후, 클레임으로 `CustomUserDetails`를 만들어 **`SecurityContextHolder`에 인증 설정** |
 | `JWTUtil` | 비밀키로 서명·검증, 클레임(`username`, `role`) 읽기, 만료 확인, 토큰 생성 |
 | `CustomUserDetailsService` / `CustomUserDetails` | DB `UserEntity` 기반으로 `UserDetails`를 제공해 **로그인 시 비밀번호 검증**이 스프링 시큐리티 규칙대로 이뤄지게 함 |
-
----
 
 ## 실행 시 참고
 
