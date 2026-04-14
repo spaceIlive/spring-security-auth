@@ -7,7 +7,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
 
@@ -34,10 +33,18 @@ public class CustomUserDetails implements UserDetails {
     public @Nullable String getPassword() {
         return userEntity.getPassword();
     }
-
+    //우리는 식별자가 이메일이랑 같아서
     @Override
     public String getUsername() {
+        return userEntity.getEmail();
+    }
+    //이게 유저이름 가져오는거
+    public String getName() {
         return userEntity.getName();
+    }
+
+    public String getProvider() {
+        return userEntity.getProvider();
     }
 
     @Override
