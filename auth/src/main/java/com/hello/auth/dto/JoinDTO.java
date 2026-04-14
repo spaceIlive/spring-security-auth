@@ -1,12 +1,19 @@
 package com.hello.auth.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.hello.auth.entity.UserEntity;
 
-@Getter
-@Setter
-public class JoinDTO {
-    private String username;
-    private String password;
-
+public record JoinDTO (
+    String email,
+    String password,
+    String name
+){
+    public UserEntity toEntity(String encodedPassword) {
+        return new UserEntity(
+                this.email,
+                this.name,
+                encodedPassword,
+                "ROLE_ADMIN",
+                "local"
+        );
+    }
 }
