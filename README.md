@@ -17,13 +17,17 @@ Spring Security 필터 체인을 직접 구성해서,
 2. `JoinService`가 이메일 중복 체크 후 비밀번호 암호화  
 3. `UserRepository`를 통해 `UserEntity` 저장
 
-### 2) 로그인 (`POST /login`)
+### 2) 로그인 (버전별)
 
-1. `LoginFilter`가 `email`, `password`를 읽음  
-2. `AuthenticationManager`가 `CustomUserDetailsService` 호출  
-3. `UserRepository`에서 사용자 조회 후 비밀번호 검증  
-4. 인증 성공 시 `JWTUtil`로 JWT 생성  
-5. 응답 헤더 `Authorization: Bearer {token}` 반환
+#### 2-1. 이전 버전: Form 로그인 (`POST /login`, `LoginFilter`)
+1. `LoginFilter`가 `UsernamePasswordAuthenticationFilter` 기반으로 로그인 요청을 가로챔  
+2. 인증 시도 후 성공하면 `JWTUtil`로 JWT를 생성해 응답 헤더 `Authorization: Bearer {token}`으로 반환
+
+#### 2-2. 이번 버전: JSON 로그인 (`POST /api/login`, `JsonLoginFilter`)
+1. `SecurityConfig`에서 `UsernamePasswordAuthenticationFilter` 자리에 `JsonLoginFilter`를 배치  
+2. `JsonLoginFilter`는 `AbstractAuthenticationProcessingFilter` 기반으로 `/api/login` 요청을 처리  
+3. 요청의 변환/검증 준비는 `JsonLoginAuthenticationConverter`의 `convert(HttpServletRequest)` 흐름에 위임  
+4. 인증 성공 시 `JWTUtil`로 JWT를 생성하고 응답 헤더 `Authorization: Bearer {token}`으로 반환
 
 ### 3) 보호된 API 요청
 
@@ -38,7 +42,9 @@ Spring Security 필터 체인을 직접 구성해서,
 | 클래스 | 역할 |
 |---|---|
 | `SecurityConfig` | 필터 체인 구성, 경로별 인가, `STATELESS` 세션 정책 |
-| `LoginFilter` | 로그인 요청 인증 시도, 성공 시 JWT 발급 |
+| `LoginFilter` | form 기반 로그인 인증 시도, 성공 시 JWT 발급 |
+| `JsonLoginFilter` | JSON 로그인 요청 처리, 성공 시 JWT 발급 |
+| `JsonLoginAuthenticationConverter` | JSON 요청을 인증 시도용 `Authentication`으로 변환 |
 | `JWTFilter` | 모든 요청에서 JWT 검증 후 `SecurityContextHolder` 설정 |
 | `JWTUtil` | JWT 생성/파싱/만료 확인 |
 | `CustomUserDetailsService` | 이메일 기반 사용자 조회 (`loadUserByUsername`) |
