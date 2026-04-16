@@ -2,6 +2,7 @@ package com.hello.auth.config;
 
 import com.hello.auth.utils.JWTFilter;
 import com.hello.auth.utils.JWTUtil;
+import com.hello.auth.utils.JsonLoginFilter;
 import com.hello.auth.utils.LoginFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -65,8 +66,12 @@ public class SecurityConfig {
                 .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class);
 
         //필터 추가 LoginFilter()는 인자를 받음 (AuthenticationManager() 메소드에 authenticationConfiguration 객체를 넣어야 함) 따라서 등록 필요
-        http
+        /*http
                 .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil), UsernamePasswordAuthenticationFilter.class);
+*/
+        //필터추가
+        http
+                .addFilterAt(new JsonLoginFilter(authenticationManager(authenticationConfiguration), jwtUtil),  UsernamePasswordAuthenticationFilter.class);
 
         //세션 설정
         http
