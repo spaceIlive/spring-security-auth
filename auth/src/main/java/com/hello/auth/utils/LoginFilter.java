@@ -50,6 +50,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         System.out.println("로그인 성공");
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
         //
+
         String email = customUserDetails.getUsername();
         String username = customUserDetails.getName();
         String provider = customUserDetails.getProvider();
@@ -58,9 +59,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         GrantedAuthority auth = iterator.next();
 
         String role = auth.getAuthority();
-        String token = jwtUtil.createJwt(email, role, username, provider,60*60*100L);
 
-        response.addHeader("Authorization", "Bearer " + token);
+        // refresh 때문에 카테고리 추가돼서 일단 해당부분 주석처리 해둠(그리고 앞으로 폼로그인 구현할때 다르게 다시 쓸듯)
+        //String token = jwtUtil.createJwt(email, role, username, provider,60*60*100L);
+
+        //response.addHeader("Authorization", "Bearer " + token);
 
     }
 

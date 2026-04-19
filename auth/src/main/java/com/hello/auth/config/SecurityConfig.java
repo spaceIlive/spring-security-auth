@@ -1,5 +1,6 @@
 package com.hello.auth.config;
 
+import com.hello.auth.service.RefreshTokenService;
 import com.hello.auth.utils.JWTFilter;
 import com.hello.auth.utils.JWTUtil;
 import com.hello.auth.utils.JsonLoginFilter;
@@ -21,10 +22,12 @@ public class SecurityConfig {
     //AuthenticationManager가 인자로 받을 AuthenticationConfiguraion 객체 생성자 주입
     private final AuthenticationConfiguration authenticationConfiguration;
     private final JWTUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
-    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil) {
+    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.authenticationConfiguration = authenticationConfiguration;
         this.jwtUtil = jwtUtil;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Bean
@@ -52,12 +55,13 @@ public class SecurityConfig {
                 .httpBasic((auth) -> auth.disable());
 
         //경로별 인가 작업
-        // /login, /, /join 같은 경로는 다 허용
+        // /api/login, /, /join 같은 경로는 다 허용
         // /admin 은 역하링 admin인 사람만 허용
         // 나머지 요청은 .authenticated() 인가된 사람만 허용
         http
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/login", "/", "/join").permitAll()
+                        .requestMatchers("/api/login", "/", "/join").permitAll()
+                        .requestMatchers("/api/reissue").permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated());
 
@@ -71,7 +75,7 @@ public class SecurityConfig {
 */
         //필터추가
         http
-                .addFilterAt(new JsonLoginFilter(authenticationManager(authenticationConfiguration), jwtUtil),  UsernamePasswordAuthenticationFilter.class);
+                .addFilterAt(new JsonLoginFilter(authenticationManager(authenticationConfiguration), jwtUtil, refreshTokenService),  UsernamePasswordAuthenticationFilter.class);
 
         //세션 설정
         http

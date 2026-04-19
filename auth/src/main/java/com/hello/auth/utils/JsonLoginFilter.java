@@ -1,9 +1,12 @@
 package com.hello.auth.utils;
 
 import com.hello.auth.dto.CustomUserDetails;
+import com.hello.auth.service.RefreshTokenService;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -16,10 +19,12 @@ import java.util.Iterator;
 
 public class JsonLoginFilter extends AbstractAuthenticationProcessingFilter {
     private final JWTUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
-    public JsonLoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil) {
+    public JsonLoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, RefreshTokenService refreshTokenService) {
         super("/api/login", authenticationManager);
         this.jwtUtil = jwtUtil;
+        this.refreshTokenService = refreshTokenService;
         setAuthenticationConverter(new JsonLoginAuthenticationConverter());
     }
 
@@ -37,9 +42,17 @@ public class JsonLoginFilter extends AbstractAuthenticationProcessingFilter {
         GrantedAuthority auth = iterator.next();
 
         String role = auth.getAuthority();
-        String token = jwtUtil.createJwt(email, role, username, provider,60*60*100L);
+        String accessToken = jwtUtil.createJwt("access",email, role, username, provider,60*60*1000L);
+        String refreshToken = jwtUtil.createJwt("refresh",email, role, username, provider,60*60*24*30*1000L);
 
-        response.addHeader("Authorization", "Bearer " + token);
+        //발급과 동시에 db에 리프래시토큰 저장
+        refreshTokenService.save(email, refreshToken, 60*60*24*30*1000L);
+
+        //헤더에 어세스토큰 추가
+        response.addHeader("Authorization", "Bearer " + accessToken);
+        // 쿠키에 리프레시 추가
+        response.addCookie(createCookie("refresh", refreshToken));
+        response.setStatus(HttpStatus.OK.value());
 
     }
 
@@ -49,5 +62,19 @@ public class JsonLoginFilter extends AbstractAuthenticationProcessingFilter {
         response.setStatus(401);
     }
 
+    private Cookie createCookie(String key, String value) {
+
+        Cookie cookie = new Cookie(key, value);
+        //30일 만료
+        cookie.setMaxAge(60 * 60 * 24 * 30);
+        // https통신만 허용
+        //cookie.setSecure(true);
+        //쿠키 허용 범위
+        cookie.setPath("/api/reissue");
+        //자바스크립트로 접근 막기
+        cookie.setHttpOnly(true);
+
+        return cookie;
+    }
 
 }
